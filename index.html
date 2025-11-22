@@ -25,6 +25,7 @@
     <div id="modal-container"></div>
 
     <script>
+        // --- 图标库 ---
         const ICONS = {
             menu: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
             plus: '<svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
@@ -48,18 +49,18 @@
         const CATEGORIES = {
             expense: [
                 { id: 'cats', name: '圣代&橘子', keywords: ['宠物', '猫', '罐头', '猫砂', '疫苗', '医院'], icon: 'cat', color: 'bg-[#FFDAB9] text-[#8B4513]' },
-                { id: 'toys', name: '谷子/周边', keywords: ['娱乐', '谷子', '吧唧', '手办', '毛绒', '游戏', '任天堂', '宝可梦'], icon: 'ghost', color: 'bg-[#E6E6FA] text-[#6A5ACD]' },
-                { id: 'art', name: '画材/工作', keywords: ['工作', '画材', '设备', '笔', '纸', '约稿', '软件'], icon: 'palette', color: 'bg-[#E0FFFF] text-[#008B8B]' },
-                { id: 'food', name: '餐饮/饮食', keywords: ['饮食', '餐饮', '吃饭', '外卖', '零食', '奶茶'], icon: 'coffee', color: 'bg-[#FFFACD] text-[#DAA520]' },
-                { id: 'insurance', name: '社保/医保', keywords: ['社保', '医保', '保险'], icon: 'shield', color: 'bg-[#D1E8FF] text-[#2B6CB0]' },
-                { id: 'living', name: '居住/日用', keywords: ['日用', '居住', '水电', '房租', '话费', '健康'], icon: 'home', color: 'bg-[#F0FFF0] text-[#2E8B57]' },
-                { id: 'shopping', name: '服饰/购物', keywords: ['服饰', '购物', '衣服', '鞋', '化妆', '淘宝'], icon: 'bag', color: 'bg-[#FFB6C1] text-[#C71585]' },
+                { id: 'toys', name: '谷子/周边', keywords: ['娱乐', '谷子', '吧唧', '手办', '毛绒', '游戏', '任天堂', '宝可梦', 'steam', '卡带'], icon: 'ghost', color: 'bg-[#E6E6FA] text-[#6A5ACD]' },
+                { id: 'art', name: '画材/工作', keywords: ['工作', '画材', '设备', '笔', '纸', '约稿', '软件', 'procreate'], icon: 'palette', color: 'bg-[#E0FFFF] text-[#008B8B]' },
+                { id: 'food', name: '餐饮/饮食', keywords: ['饮食', '餐饮', '吃饭', '外卖', '零食', '水', '奶茶', '饿了么', '美团'], icon: 'coffee', color: 'bg-[#FFFACD] text-[#DAA520]' },
+                { id: 'insurance', name: '社保/医保', keywords: ['社保', '医保', '保险', '公积金'], icon: 'shield', color: 'bg-[#D1E8FF] text-[#2B6CB0]' },
+                { id: 'living', name: '居住/日用', keywords: ['日用', '居住', '水电', '房租', '话费', '网费', '健康', '药', '纸巾'], icon: 'home', color: 'bg-[#F0FFF0] text-[#2E8B57]' },
+                { id: 'shopping', name: '服饰/购物', keywords: ['服饰', '购物', '衣服', '鞋', '化妆', '淘宝', '京东'], icon: 'bag', color: 'bg-[#FFB6C1] text-[#C71585]' },
                 { id: 'other', name: '其他', keywords: ['其他', '杂项'], icon: 'heart', color: 'bg-[#F5F5F5] text-[#696969]' },
             ],
             income: [
-                { id: 'salary', name: '稿费/工资', keywords: ['工资', '稿费', '项目', '尾款'], icon: 'palette', color: 'bg-[#E0FFFF] text-[#008B8B]' },
-                { id: 'xianyu', name: '闲鱼回血', keywords: ['闲鱼', '出物'], icon: 'bag', color: 'bg-[#FFEFD5] text-[#FF8C00]' },
-                { id: 'other', name: '其他收入', keywords: ['利息', '红包'], icon: 'heart', color: 'bg-[#F5F5F5] text-[#696969]' },
+                { id: 'salary', name: '稿费/工资', keywords: ['工资', '稿费', '项目', '尾款', '定金'], icon: 'palette', color: 'bg-[#E0FFFF] text-[#008B8B]' },
+                { id: 'xianyu', name: '闲鱼回血', keywords: ['闲鱼', '出物', '回血'], icon: 'bag', color: 'bg-[#FFEFD5] text-[#FF8C00]' },
+                { id: 'other', name: '其他收入', keywords: ['利息', '红包', '转账'], icon: 'heart', color: 'bg-[#F5F5F5] text-[#696969]' },
             ]
         };
 
@@ -78,7 +79,6 @@
 
         function init() {
             try {
-                // 读取历史数据
                 const keys = ['mumu_companion_data', 'mumu_otaku_data_v2', 'mumu_wallet_data'];
                 let data = null;
                 for(let k of keys) {
@@ -98,22 +98,17 @@
             localStorage.setItem('mumu_budget_limit', state.budget);
         }
 
-        // --- 核心解析逻辑 ---
         function parseChineseDate(str) {
             if(!str) return null;
             const s = str.trim();
-            // 匹配 2024年11月22日
             const m1 = s.match(/(\d{4})年(\d{1,2})月(\d{1,2})?日?/);
             if(m1) return new Date(m1[1], m1[2]-1, m1[3]||1).toISOString();
-            // 匹配 2024-11-22 或 2024/11/22
             if(s.match(/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/)) return new Date(s).toISOString();
             return null;
         }
 
-        // --- 智能去重逻辑 ---
         function isDuplicate(newTx) {
             return state.transactions.some(oldTx => {
-                // 比较四个关键维度：日期(天)、金额、类型、备注
                 const d1 = new Date(oldTx.date).toDateString();
                 const d2 = new Date(newTx.date).toDateString();
                 return d1 === d2 && 
@@ -138,7 +133,6 @@
             const remaining = state.budget - expense;
             const remainingPercent = state.budget > 0 ? (remaining/state.budget)*100 : 0;
 
-            // AI 文案逻辑
             let aiMsg = "我是你的管家。每一笔支出，我都看在眼里哦。";
             const isCurrent = m === new Date().getMonth() && y === new Date().getFullYear();
             
@@ -151,9 +145,7 @@
             else if(remainingPercent > 60) aiMsg = "状态平稳。记得给圣代和橘子留点体检费。";
 
             app.innerHTML = `
-                <!-- 顶部固定区域 -->
                 <div class="pt-4 px-6 pb-4 sticky top-0 bg-[#FFF9F5]/95 backdrop-blur-md z-10 border-b border-[#F5E6D3]/50">
-                    <!-- AI Bubble -->
                     <div class="flex items-start gap-3 mb-4 fade-in">
                         <div class="w-10 h-10 rounded-full bg-[#4A4A4A] flex items-center justify-center text-white shrink-0 shadow-lg mt-1">
                             ${ICONS.message}
@@ -163,8 +155,6 @@
                             <div class="absolute -left-1.5 top-4 w-2 h-2 bg-white border-l border-b border-[#E6E6FA] rotate-45"></div>
                         </div>
                     </div>
-
-                    <!-- 控制栏 -->
                     <div class="flex justify-between items-center mb-3">
                         <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-[#F5F5F5]">
                             <button onclick="changeMonth(-1)" class="text-[#BCBCBC] active:text-[#4A4A4A]">${ICONS.chevronLeft}</button>
@@ -177,8 +167,6 @@
                             <button onclick="openSettings()" class="p-2 bg-white rounded-full shadow-sm active:scale-95 transition-transform" title="设置">${ICONS.menu}</button>
                         </div>
                     </div>
-
-                    <!-- 余额卡片 -->
                     <div class="grid grid-cols-2 gap-3">
                         <div class="bg-[#4A4A4A] rounded-2xl p-4 text-white shadow-lg shadow-[#4A4A4A]/20 h-24 flex flex-col justify-between relative overflow-hidden">
                             <div class="absolute right-0 top-0 opacity-10 p-2 text-white">${ICONS.ghost}</div>
@@ -195,8 +183,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 列表区域 -->
                 <div class="px-6 pb-24 pt-2 space-y-2">
                     ${monthTx.length === 0 ? 
                         `<div class="text-center py-10 opacity-60">
@@ -228,8 +214,6 @@
                         }).join('')
                     }
                 </div>
-
-                <!-- FAB -->
                 <button onclick="openModal()" class="fixed bottom-8 right-6 w-14 h-14 bg-[#4A4A4A] text-white rounded-full shadow-xl shadow-[#4A4A4A]/30 flex items-center justify-center z-30 active:scale-90 transition-transform">
                     ${ICONS.plus}
                 </button>
@@ -291,7 +275,6 @@
             } else { container.innerHTML = ''; }
         }
 
-        // --- 交互逻辑 ---
         function changeMonth(delta) { const d = new Date(state.currentDate); d.setMonth(d.getMonth() + delta); state.currentDate = d; render(); }
         function openModal() { state.modalOpen = true; state.formAmount=''; state.formCategory=''; state.formNote=''; render(); }
         function openSettings() { state.settingsOpen = true; render(); }
@@ -305,8 +288,6 @@
         }
         function deleteTx(id) { if(confirm('删掉这条？')) { state.transactions = state.transactions.filter(t=>t.id!==id); save(); render(); } }
 
-        // --- 修复后的文件处理 (iOS兼容版 + 智能去重) ---
-        // 1. 恢复：只接受 .json
         const restoreInput = document.createElement('input'); 
         restoreInput.type='file'; 
         restoreInput.accept='.json,application/json'; 
@@ -318,10 +299,9 @@
             r.readAsText(f); e.target.value=null;
         };
         
-        // 2. 导入：放开限制，允许选择所有文件，在JS里判断
         const importInput = document.createElement('input'); 
         importInput.type='file'; 
-        importInput.accept = '*/*'; // 兼容iOS
+        importInput.accept='.csv,.txt,text/csv,text/plain'; 
         importInput.style.display='none';
         
         importInput.onchange = (e) => {
@@ -340,10 +320,8 @@
                     const parts = line.split(/,|，|\t/);
                     let amt = null, type = 'expense', cat = 'other', note = '', date = new Date().toISOString();
                     
-                    // 日期解析
                     parts.forEach(p => { const d = parseChineseDate(p); if(d) date = d; });
                     
-                    // 金额解析
                     parts.forEach(p => {
                         const clean = p.replace(/["¥\s]/g, '');
                         if(/^-?\d+(\.\d+)?$/.test(clean) && Math.abs(parseFloat(clean)) < 100000 && !parseChineseDate(p)) {
@@ -354,7 +332,6 @@
                         }
                     });
                     
-                    // 分类解析
                     const txt = line.toLowerCase();
                     let matched = false;
                     CATEGORIES.expense.forEach(c => { if(c.keywords.some(k=>txt.includes(k))) { cat = c.id; type='expense'; matched=true; } });
