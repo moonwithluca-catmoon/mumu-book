@@ -12,11 +12,16 @@
         body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); background-color: #FFF9F5; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
         .slide-up { animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .icon { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        
+        /* Checkbox Style */
+        .custom-checkbox { appearance: none; width: 20px; height: 20px; border: 2px solid #D1D5DB; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .custom-checkbox:checked { background-color: #4A4A4A; border-color: #4A4A4A; }
+        .custom-checkbox:checked::after { content: '✔'; color: white; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body class="text-[#5D5D5D] font-sans antialiased select-none h-screen flex flex-col">
@@ -25,7 +30,6 @@
     <div id="modal-container"></div>
 
     <script>
-        // --- 图标库 ---
         const ICONS = {
             menu: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
             plus: '<svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
@@ -49,18 +53,18 @@
         const CATEGORIES = {
             expense: [
                 { id: 'cats', name: '圣代&橘子', keywords: ['宠物', '猫', '罐头', '猫砂', '疫苗', '医院'], icon: 'cat', color: 'bg-[#FFDAB9] text-[#8B4513]' },
-                { id: 'toys', name: '谷子/周边', keywords: ['娱乐', '谷子', '吧唧', '手办', '毛绒', '游戏', '任天堂', '宝可梦', 'steam', '卡带'], icon: 'ghost', color: 'bg-[#E6E6FA] text-[#6A5ACD]' },
-                { id: 'art', name: '画材/工作', keywords: ['工作', '画材', '设备', '笔', '纸', '约稿', '软件', 'procreate'], icon: 'palette', color: 'bg-[#E0FFFF] text-[#008B8B]' },
-                { id: 'food', name: '餐饮/饮食', keywords: ['饮食', '餐饮', '吃饭', '外卖', '零食', '水', '奶茶', '饿了么', '美团'], icon: 'coffee', color: 'bg-[#FFFACD] text-[#DAA520]' },
-                { id: 'insurance', name: '社保/医保', keywords: ['社保', '医保', '保险', '公积金'], icon: 'shield', color: 'bg-[#D1E8FF] text-[#2B6CB0]' },
-                { id: 'living', name: '居住/日用', keywords: ['日用', '居住', '水电', '房租', '话费', '网费', '健康', '药', '纸巾'], icon: 'home', color: 'bg-[#F0FFF0] text-[#2E8B57]' },
-                { id: 'shopping', name: '服饰/购物', keywords: ['服饰', '购物', '衣服', '鞋', '化妆', '淘宝', '京东'], icon: 'bag', color: 'bg-[#FFB6C1] text-[#C71585]' },
+                { id: 'toys', name: '谷子/周边', keywords: ['娱乐', '谷子', '吧唧', '手办', '毛绒', '游戏', '任天堂', '宝可梦'], icon: 'ghost', color: 'bg-[#E6E6FA] text-[#6A5ACD]' },
+                { id: 'art', name: '画材/工作', keywords: ['工作', '画材', '设备', '笔', '纸', '约稿', '软件'], icon: 'palette', color: 'bg-[#E0FFFF] text-[#008B8B]' },
+                { id: 'food', name: '餐饮/饮食', keywords: ['饮食', '餐饮', '吃饭', '外卖', '零食', '奶茶'], icon: 'coffee', color: 'bg-[#FFFACD] text-[#DAA520]' },
+                { id: 'insurance', name: '社保/医保', keywords: ['社保', '医保', '保险'], icon: 'shield', color: 'bg-[#D1E8FF] text-[#2B6CB0]' },
+                { id: 'living', name: '居住/日用', keywords: ['日用', '居住', '水电', '房租', '话费', '健康'], icon: 'home', color: 'bg-[#F0FFF0] text-[#2E8B57]' },
+                { id: 'shopping', name: '服饰/购物', keywords: ['服饰', '购物', '衣服', '鞋', '化妆', '淘宝'], icon: 'bag', color: 'bg-[#FFB6C1] text-[#C71585]' },
                 { id: 'other', name: '其他', keywords: ['其他', '杂项'], icon: 'heart', color: 'bg-[#F5F5F5] text-[#696969]' },
             ],
             income: [
-                { id: 'salary', name: '稿费/工资', keywords: ['工资', '稿费', '项目', '尾款', '定金'], icon: 'palette', color: 'bg-[#E0FFFF] text-[#008B8B]' },
-                { id: 'xianyu', name: '闲鱼回血', keywords: ['闲鱼', '出物', '回血'], icon: 'bag', color: 'bg-[#FFEFD5] text-[#FF8C00]' },
-                { id: 'other', name: '其他收入', keywords: ['利息', '红包', '转账'], icon: 'heart', color: 'bg-[#F5F5F5] text-[#696969]' },
+                { id: 'salary', name: '稿费/工资', keywords: ['工资', '稿费', '项目', '尾款'], icon: 'palette', color: 'bg-[#E0FFFF] text-[#008B8B]' },
+                { id: 'xianyu', name: '闲鱼回血', keywords: ['闲鱼', '出物'], icon: 'bag', color: 'bg-[#FFEFD5] text-[#FF8C00]' },
+                { id: 'other', name: '其他收入', keywords: ['利息', '红包'], icon: 'heart', color: 'bg-[#F5F5F5] text-[#696969]' },
             ]
         };
 
@@ -70,6 +74,8 @@
             currentDate: new Date(),
             modalOpen: false,
             settingsOpen: false,
+            importModalOpen: false, // New: 导入确认弹窗
+            pendingImports: [], // New: 待确认的导入数据
             formType: 'expense',
             formAmount: '',
             formCategory: '',
@@ -103,7 +109,8 @@
             const s = str.trim();
             const m1 = s.match(/(\d{4})年(\d{1,2})月(\d{1,2})?日?/);
             if(m1) return new Date(m1[1], m1[2]-1, m1[3]||1).toISOString();
-            if(s.match(/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/)) return new Date(s).toISOString();
+            const m2 = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            if(m2) return new Date(m2[1], m2[2]-1, m2[3]).toISOString();
             return null;
         }
 
@@ -116,6 +123,22 @@
                        oldTx.type === newTx.type && 
                        (oldTx.note || '').trim() === (newTx.note || '').trim();
             });
+        }
+
+        // New: 处理勾选导入
+        function confirmImport() {
+            const checkboxes = document.querySelectorAll('.import-checkbox:checked');
+            let count = 0;
+            checkboxes.forEach(cb => {
+                const index = parseInt(cb.value);
+                state.transactions.push(state.pendingImports[index]);
+                count++;
+            });
+            state.importModalOpen = false;
+            state.pendingImports = [];
+            alert(`成功导入 ${count} 条记录！`);
+            save();
+            render();
         }
 
         function render() {
@@ -268,7 +291,49 @@
                         <div class="border-t pt-4">
                             <h3 class="text-lg font-bold text-[#4A4A4A] mb-2">导入数据 (CSV/Excel)</h3>
                             <button onclick="triggerImport()" class="w-full py-3 bg-[#E0FFFF] text-[#008B8B] font-bold rounded-xl mb-2 text-sm">选择文件...</button>
-                            <p class="text-[10px] text-[#BCBCBC]">自动去重 · 支持多次导入</p>
+                            <p class="text-[10px] text-[#BCBCBC]">支持 Numbers 导出、CSV、TXT</p>
+                        </div>
+                    </div>
+                </div>`;
+            } else if (state.importModalOpen) {
+                // New: 导入核对列表 UI
+                const listHtml = state.pendingImports.map((t, idx) => {
+                    const isDup = isDuplicate(t);
+                    return `
+                    <label class="flex items-center gap-3 p-3 bg-white rounded-xl border ${isDup ? 'border-[#FFE4E1] bg-[#FFF0F0]' : 'border-gray-100'}">
+                        <input type="checkbox" class="import-checkbox custom-checkbox" value="${idx}" ${!isDup ? 'checked' : ''}>
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <span class="text-xs font-bold text-[#5D5D5D]">${t.note || '无备注'}</span>
+                                <span class="text-xs font-bold ${t.type==='income'?'text-[#008B8B]':'text-[#4A4A4A]'}">${t.type==='income'?'+':'-'}${t.amount}</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-1 flex items-center gap-2">
+                                ${new Date(t.date).toLocaleDateString()}
+                                ${isDup ? '<span class="text-red-400 bg-red-50 px-1 rounded">疑似重复</span>' : '<span class="text-green-500 bg-green-50 px-1 rounded">新记录</span>'}
+                            </div>
+                        </div>
+                    </label>`;
+                }).join('');
+
+                container.innerHTML = `
+                <div class="fixed inset-0 bg-[#4A4A4A]/40 backdrop-blur-[2px] z-50 flex items-end justify-center fade-in">
+                    <div class="bg-white w-full max-w-md h-[80vh] rounded-t-[2rem] p-6 shadow-2xl slide-up flex flex-col" onclick="event.stopPropagation()">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-[#4A4A4A]">确认导入</h3>
+                                <p class="text-xs text-gray-400">共解析出 ${state.pendingImports.length} 条记录</p>
+                            </div>
+                            <button onclick="state.importModalOpen=false;state.pendingImports=[];render()" class="p-2 bg-[#F5F5F5] rounded-full text-[#9FA0A0]">${ICONS.x}</button>
+                        </div>
+                        
+                        <div class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1">
+                            ${listHtml}
+                        </div>
+
+                        <div class="pt-2 border-t">
+                            <button onclick="confirmImport()" class="w-full py-3.5 bg-[#4A4A4A] text-white font-bold rounded-xl shadow-lg">
+                                导入选中记录
+                            </button>
                         </div>
                     </div>
                 </div>`;
@@ -301,7 +366,6 @@
         
         const importInput = document.createElement('input'); 
         importInput.type='file'; 
-        importInput.accept='.csv,.txt,text/csv,text/plain'; 
         importInput.style.display='none';
         
         importInput.onchange = (e) => {
@@ -312,16 +376,17 @@
             reader.onload = (evt) => {
                 const text = evt.target.result;
                 const lines = text.split(/\r\n|\n/);
-                let count = 0;
-                let skipCount = 0;
+                state.pendingImports = [];
                 
                 lines.forEach(line => {
                     if(!line.trim()) return;
                     const parts = line.split(/,|，|\t/);
                     let amt = null, type = 'expense', cat = 'other', note = '', date = new Date().toISOString();
                     
-                    parts.forEach(p => { const d = parseChineseDate(p); if(d) date = d; });
-                    
+                    let foundDate = null;
+                    parts.forEach(p => { const d = parseChineseDate(p); if(d) foundDate = d; });
+                    if(foundDate) date = foundDate;
+
                     parts.forEach(p => {
                         const clean = p.replace(/["¥\s]/g, '');
                         if(/^-?\d+(\.\d+)?$/.test(clean) && Math.abs(parseFloat(clean)) < 100000 && !parseChineseDate(p)) {
@@ -338,22 +403,23 @@
                     if(!matched) CATEGORIES.income.forEach(c => { if(c.keywords.some(k=>txt.includes(k))) { cat = c.id; type='income'; } });
 
                     if(amt !== null) {
-                        const newTx = { id: Date.now()+Math.random(), type, amount: amt.toFixed(2), category: cat, note: txt.slice(0,10), date };
-                        if(isDuplicate(newTx)) {
-                            skipCount++;
-                        } else {
-                            state.transactions.push(newTx);
-                            count++;
-                        }
+                        state.pendingImports.push({ 
+                            id: Date.now()+Math.random(), 
+                            type, 
+                            amount: amt.toFixed(2), 
+                            category: cat, 
+                            note: txt.slice(0,15), 
+                            date 
+                        });
                     }
                 });
                 
-                let msg = '';
-                if(count > 0) msg += `成功导入 ${count} 条新记录！`;
-                if(skipCount > 0) msg += `\n已自动跳过 ${skipCount} 条重复记录。`;
-                
-                if(msg) { alert(msg); save(); render(); }
-                else { alert('没读出有效数据，或者数据全是重复的~'); }
+                if(state.pendingImports.length > 0) {
+                    state.importModalOpen = true;
+                    render();
+                } else {
+                    alert('没读出数据...文件格式可能不对');
+                }
             };
             reader.readAsText(file);
             e.target.value = null;
