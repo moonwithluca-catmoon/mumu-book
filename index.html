@@ -17,8 +17,6 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .icon { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
-        
-        /* Checkbox Style */
         .custom-checkbox { appearance: none; width: 20px; height: 20px; border: 2px solid #D1D5DB; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
         .custom-checkbox:checked { background-color: #4A4A4A; border-color: #4A4A4A; }
         .custom-checkbox:checked::after { content: '✔'; color: white; font-size: 12px; font-weight: bold; }
@@ -73,9 +71,13 @@
             budget: 5000,
             currentDate: new Date(),
             modalOpen: false,
+            detailModalOpen: false,
+            selectedTx: null,
             settingsOpen: false,
-            importModalOpen: false, // New: 导入确认弹窗
-            pendingImports: [], // New: 待确认的导入数据
+            importModalOpen: false,
+            pendingImports: [],
+            showChart: false,
+            filterType: 'all', // 'all', 'income', 'expense'
             formType: 'expense',
             formAmount: '',
             formCategory: '',
@@ -125,7 +127,6 @@
             });
         }
 
-        // New: 处理勾选导入
         function confirmImport() {
             const checkboxes = document.querySelectorAll('.import-checkbox:checked');
             let count = 0;
@@ -141,34 +142,104 @@
             render();
         }
 
+        function openDetail(txId) {
+            state.selectedTx = state.transactions.find(t => t.id === txId);
+            state.detailModalOpen = true;
+            render();
+        }
+
+        function toggleFilter(type) {
+            if (state.filterType === type) {
+                state.filterType = 'all';
+            } else {
+                state.filterType = type;
+            }
+            render();
+        }
+
         function render() {
             const app = document.getElementById('app');
             const y = state.currentDate.getFullYear();
             const m = state.currentDate.getMonth();
             
-            const monthTx = state.transactions.filter(t => {
+            // 1. 先计算当月总收支（不受筛选影响）
+            const monthAllTx = state.transactions.filter(t => {
                 const d = new Date(t.date);
                 return d.getFullYear() === y && d.getMonth() === m;
-            }).sort((a,b) => new Date(b.date) - new Date(a.date));
-
+            });
+            
             let income = 0, expense = 0;
-            monthTx.forEach(t => t.type === 'income' ? income+=Number(t.amount) : expense+=Number(t.amount));
+            const categoryTotals = {};
+            monthAllTx.forEach(t => {
+                if(t.type === 'income') income += Number(t.amount);
+                else {
+                    expense += Number(t.amount);
+                    categoryTotals[t.category] = (categoryTotals[t.category] || 0) + Number(t.amount);
+                }
+            });
+            
             const remaining = state.budget - expense;
             const remainingPercent = state.budget > 0 ? (remaining/state.budget)*100 : 0;
 
+            // 2. 再根据 filterType 筛选列表显示的数据
+            let displayTx = monthAllTx;
+            if (state.filterType === 'income') displayTx = monthAllTx.filter(t => t.type === 'income');
+            else if (state.filterType === 'expense') displayTx = monthAllTx.filter(t => t.type === 'expense');
+            
+            displayTx = displayTx.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            // 图表数据准备
+            const pieData = Object.entries(categoryTotals).map(([catId, amount]) => {
+                const cat = CATEGORIES.expense.find(c => c.id === catId) || CATEGORIES.expense[7];
+                return { name: cat.name, value: amount, color: cat.color, rawColor: cat.color.match(/bg-\[#(.*?)\]/)?.[1] || 'ccc' };
+            }).sort((a,b) => b.value - a.value);
+
+            // AI 文案
             let aiMsg = "我是你的管家。每一笔支出，我都看在眼里哦。";
             const isCurrent = m === new Date().getMonth() && y === new Date().getFullYear();
-            
             if(!isCurrent) aiMsg = `正在查看 ${y}年${m+1}月 的账单...`;
             else if(remainingPercent <= 0) aiMsg = "（扶额）...透支了。快去画画回血，现在！马上！";
             else if(remainingPercent < 15) aiMsg = "警报拉响！再买我就要替橘子没收你的钱包了。";
-            else if(remainingPercent < 40) aiMsg = "进度条过半了，接下来的日子，少喝两杯奶茶吧。";
             else if(remainingPercent > 90) aiMsg = "月初是存钱的黄金期，别一看到余额多就想买谷子。";
             else if(income > expense*2 && expense > 0) aiMsg = "这月收入不错嘛！画稿辛苦啦，奖励自己一个罐头？";
-            else if(remainingPercent > 60) aiMsg = "状态平稳。记得给圣代和橘子留点体检费。";
+
+            // 图表 HTML 生成
+            let chartHtml = '';
+            if (state.showChart && pieData.length > 0) {
+                let conicParts = [];
+                let currentDeg = 0;
+                const total = expense || 1;
+                pieData.forEach(d => {
+                    const deg = (d.value / total) * 360;
+                    conicParts.push(`#${d.rawColor} ${currentDeg}deg ${currentDeg + deg}deg`);
+                    currentDeg += deg;
+                });
+                const conicStr = `conic-gradient(${conicParts.join(', ')})`;
+                
+                const legendHtml = pieData.slice(0, 4).map(d => `
+                    <div class="flex justify-between items-center text-[10px]">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-2 h-2 rounded-full ${d.color}"></div>
+                            <span class="text-[#5D5D5D] truncate w-16">${d.name}</span>
+                        </div>
+                        <span class="font-bold text-[#8B8B8B]">${Math.round((d.value/total)*100)}%</span>
+                    </div>
+                `).join('');
+
+                chartHtml = `
+                <div class="mt-3 bg-white rounded-2xl p-3 border border-[#E6E6FA] fade-in">
+                    <div class="flex items-center gap-4 py-2">
+                        <div class="w-24 h-24 rounded-full shrink-0 shadow-inner" style="background: ${conicStr}"></div>
+                        <div class="flex-1 space-y-1">
+                            ${legendHtml}
+                        </div>
+                    </div>
+                </div>`;
+            }
 
             app.innerHTML = `
-                <div class="pt-4 px-6 pb-4 sticky top-0 bg-[#FFF9F5]/95 backdrop-blur-md z-10 border-b border-[#F5E6D3]/50">
+                <div class="pt-4 px-6 pb-2 sticky top-0 bg-[#FFF9F5]/95 backdrop-blur-md z-10 border-b border-[#F5E6D3]/50">
+                    <!-- AI Bubble -->
                     <div class="flex items-start gap-3 mb-4 fade-in">
                         <div class="w-10 h-10 rounded-full bg-[#4A4A4A] flex items-center justify-center text-white shrink-0 shadow-lg mt-1">
                             ${ICONS.message}
@@ -178,6 +249,8 @@
                             <div class="absolute -left-1.5 top-4 w-2 h-2 bg-white border-l border-b border-[#E6E6FA] rotate-45"></div>
                         </div>
                     </div>
+
+                    <!-- Controls -->
                     <div class="flex justify-between items-center mb-3">
                         <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-[#F5F5F5]">
                             <button onclick="changeMonth(-1)" class="text-[#BCBCBC] active:text-[#4A4A4A]">${ICONS.chevronLeft}</button>
@@ -190,33 +263,45 @@
                             <button onclick="openSettings()" class="p-2 bg-white rounded-full shadow-sm active:scale-95 transition-transform" title="设置">${ICONS.menu}</button>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-[#4A4A4A] rounded-2xl p-4 text-white shadow-lg shadow-[#4A4A4A]/20 h-24 flex flex-col justify-between relative overflow-hidden">
+
+                    <!-- Cards (Clickable Filters) -->
+                    <div class="grid grid-cols-2 gap-3 mb-2">
+                        <div onclick="toggleFilter('expense')" class="rounded-2xl p-4 shadow-lg flex flex-col justify-between h-24 relative overflow-hidden transition-all ${state.filterType === 'expense' ? 'ring-2 ring-[#FFDAB9] scale-[1.02]' : ''} bg-[#4A4A4A] text-white shadow-[#4A4A4A]/20">
                             <div class="absolute right-0 top-0 opacity-10 p-2 text-white">${ICONS.ghost}</div>
                             <p class="text-[#A0A0A0] text-[10px] uppercase">Remaining</p>
                             <div>
                                 <p class="text-2xl font-bold tracking-tight">¥${remaining.toLocaleString()}</p>
+                                <p class="text-[10px] mt-1 opacity-60">${state.filterType === 'expense' ? '正在显示支出' : '点击查看支出'}</p>
                             </div>
                         </div>
-                        <div class="bg-white rounded-2xl p-4 border border-[#E6E6FA] shadow-sm h-24 flex flex-col justify-between">
+                        <div onclick="toggleFilter('income')" class="rounded-2xl p-4 shadow-sm h-24 flex flex-col justify-between transition-all border ${state.filterType === 'income' ? 'ring-2 ring-[#E0FFFF] scale-[1.02] border-[#E0FFFF]' : 'bg-white border-[#E6E6FA]'}">
                             <p class="text-[#BCBCBC] text-[10px] uppercase">Income</p>
                             <div>
                                 <p class="text-xl font-bold text-[#008B8B] tracking-tight">+¥${income.toLocaleString()}</p>
+                                <p class="text-[10px] mt-1 text-[#BCBCBC]">${state.filterType === 'income' ? '正在显示收入' : '点击查看收入'}</p>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Chart Toggle -->
+                    <button onclick="state.showChart=!state.showChart;render()" class="w-full bg-white border border-[#F5F5F5] py-2 rounded-xl text-xs text-[#8B8B8B] flex items-center justify-center gap-1 active:bg-[#FAFAFA]">
+                        ${state.showChart ? '收起收支分析' : '展开收支分析'}
+                    </button>
+                    ${chartHtml}
                 </div>
-                <div class="px-6 pb-24 pt-2 space-y-2">
-                    ${monthTx.length === 0 ? 
+
+                <!-- List -->
+                <div class="px-6 pb-24 pt-4 space-y-2">
+                    ${displayTx.length === 0 ? 
                         `<div class="text-center py-10 opacity-60">
                             <div class="w-8 h-8 mx-auto text-[#E6E6FA] mb-2">${ICONS.cat}</div>
-                            <p class="text-[#B0A096] text-xs">这里空空如也...</p>
+                            <p class="text-[#B0A096] text-xs">没有符合条件的记录...</p>
                         </div>` :
-                        monthTx.map(t => {
+                        displayTx.map(t => {
                             const catList = t.type==='income' ? CATEGORIES.income : CATEGORIES.expense;
                             const cat = catList.find(c=>c.id===t.category) || CATEGORIES.expense[7];
                             return `
-                            <div class="bg-white p-3 rounded-xl flex items-center justify-between border border-transparent active:scale-[0.99] transition-transform">
+                            <div onclick="openDetail(${t.id})" class="bg-white p-3 rounded-xl flex items-center justify-between border border-transparent active:scale-[0.99] transition-transform shadow-sm">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${cat.color}">
                                         ${ICONS[cat.icon] || ICONS.heart}
@@ -230,13 +315,14 @@
                                     <span class="font-bold text-sm ${t.type==='income'?'text-[#008B8B]':'text-[#4A4A4A]'}">
                                         ${t.type==='income'?'+':'-'} ${t.amount}
                                     </span>
-                                    <button onclick="deleteTx(${t.id})" class="text-gray-300 p-1 active:text-red-400">${ICONS.trash}</button>
                                 </div>
                             </div>
                             `
                         }).join('')
                     }
                 </div>
+
+                <!-- FAB -->
                 <button onclick="openModal()" class="fixed bottom-8 right-6 w-14 h-14 bg-[#4A4A4A] text-white rounded-full shadow-xl shadow-[#4A4A4A]/30 flex items-center justify-center z-30 active:scale-90 transition-transform">
                     ${ICONS.plus}
                 </button>
@@ -280,6 +366,42 @@
                         <button onclick="submitTx()" class="w-full py-3.5 bg-[#4A4A4A] text-white font-bold rounded-xl shadow-lg" ${!state.formAmount?'disabled style="opacity:0.5"':''}>完成</button>
                     </div>
                 </div>`;
+            } else if (state.detailModalOpen && state.selectedTx) {
+                // New: 详情弹窗
+                const t = state.selectedTx;
+                const catList = t.type==='income' ? CATEGORIES.income : CATEGORIES.expense;
+                const cat = catList.find(c=>c.id===t.category) || CATEGORIES.expense[7];
+                container.innerHTML = `
+                <div class="fixed inset-0 bg-[#4A4A4A]/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-6 fade-in" onclick="state.detailModalOpen=false;render()">
+                    <div class="bg-white w-full max-w-xs rounded-[2rem] p-6 shadow-2xl slide-up relative" onclick="event.stopPropagation()">
+                        <button onclick="state.detailModalOpen=false;render()" class="absolute top-4 right-4 p-2 bg-[#F5F5F5] rounded-full text-[#9FA0A0]">${ICONS.x}</button>
+                        
+                        <div class="flex flex-col items-center mb-6 mt-2">
+                            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${cat.color}">
+                                <div class="scale-150">${ICONS[cat.icon] || ICONS.heart}</div>
+                            </div>
+                            <h3 class="text-sm font-bold text-[#9FA0A0] mb-1">${cat.name}</h3>
+                            <p class="text-4xl font-bold ${t.type==='income'?'text-[#008B8B]':'text-[#4A4A4A]'}">
+                                ${t.type==='income'?'+':'-'}${t.amount}
+                            </p>
+                        </div>
+
+                        <div class="bg-[#F9F9F9] rounded-xl p-4 mb-6 space-y-3">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-[#BCBCBC]">时间</span>
+                                <span class="text-[#5D5D5D] font-medium">${new Date(t.date).toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-[#BCBCBC]">备注</span>
+                                <span class="text-[#5D5D5D] font-medium text-right break-all pl-4">${t.note || '无备注'}</span>
+                            </div>
+                        </div>
+
+                        <button onclick="deleteTx(${t.id});state.detailModalOpen=false" class="w-full py-3 bg-[#FFF0F0] text-[#FF6B6B] font-bold rounded-xl text-sm flex items-center justify-center gap-2">
+                            <div class="scale-75">${ICONS.trash}</div> 删除这笔账
+                        </button>
+                    </div>
+                </div>`;
             } else if (state.settingsOpen) {
                 container.innerHTML = `
                 <div class="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-50 flex items-center justify-center p-6 fade-in" onclick="state.settingsOpen=false;save();render()">
@@ -287,16 +409,14 @@
                         <h3 class="text-lg font-bold text-[#4A4A4A] mb-2">每月预算</h3>
                         <input type="number" value="${state.budget}" oninput="state.budget=Number(this.value)" class="w-full p-3 bg-[#F5F5F5] rounded-xl text-xl font-bold text-[#4A4A4A] mb-4 focus:outline-none">
                         <p class="text-xs text-[#BCBCBC] mb-4">修改后会自动保存哦</p>
-                        
                         <div class="border-t pt-4">
-                            <h3 class="text-lg font-bold text-[#4A4A4A] mb-2">导入数据 (CSV/Excel)</h3>
+                            <h3 class="text-lg font-bold text-[#4A4A4A] mb-2">导入数据</h3>
                             <button onclick="triggerImport()" class="w-full py-3 bg-[#E0FFFF] text-[#008B8B] font-bold rounded-xl mb-2 text-sm">选择文件...</button>
                             <p class="text-[10px] text-[#BCBCBC]">支持 Numbers 导出、CSV、TXT</p>
                         </div>
                     </div>
                 </div>`;
             } else if (state.importModalOpen) {
-                // New: 导入核对列表 UI
                 const listHtml = state.pendingImports.map((t, idx) => {
                     const isDup = isDuplicate(t);
                     return `
@@ -304,7 +424,7 @@
                         <input type="checkbox" class="import-checkbox custom-checkbox" value="${idx}" ${!isDup ? 'checked' : ''}>
                         <div class="flex-1">
                             <div class="flex justify-between">
-                                <span class="text-xs font-bold text-[#5D5D5D]">${t.note || '无备注'}</span>
+                                <span class="text-xs font-bold text-[#5D5D5D] truncate w-24">${t.note || '无备注'}</span>
                                 <span class="text-xs font-bold ${t.type==='income'?'text-[#008B8B]':'text-[#4A4A4A]'}">${t.type==='income'?'+':'-'}${t.amount}</span>
                             </div>
                             <div class="text-[10px] text-gray-400 mt-1 flex items-center gap-2">
@@ -325,15 +445,9 @@
                             </div>
                             <button onclick="state.importModalOpen=false;state.pendingImports=[];render()" class="p-2 bg-[#F5F5F5] rounded-full text-[#9FA0A0]">${ICONS.x}</button>
                         </div>
-                        
-                        <div class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1">
-                            ${listHtml}
-                        </div>
-
+                        <div class="flex-1 overflow-y-auto space-y-2 mb-4 pr-1">${listHtml}</div>
                         <div class="pt-2 border-t">
-                            <button onclick="confirmImport()" class="w-full py-3.5 bg-[#4A4A4A] text-white font-bold rounded-xl shadow-lg">
-                                导入选中记录
-                            </button>
+                            <button onclick="confirmImport()" class="w-full py-3.5 bg-[#4A4A4A] text-white font-bold rounded-xl shadow-lg">导入选中记录</button>
                         </div>
                     </div>
                 </div>`;
@@ -354,9 +468,7 @@
         function deleteTx(id) { if(confirm('删掉这条？')) { state.transactions = state.transactions.filter(t=>t.id!==id); save(); render(); } }
 
         const restoreInput = document.createElement('input'); 
-        restoreInput.type='file'; 
-        restoreInput.accept='.json,application/json'; 
-        restoreInput.style.display='none';
+        restoreInput.type='file'; restoreInput.accept='.json,application/json'; restoreInput.style.display='none';
         restoreInput.onchange = e => {
             const f = e.target.files[0]; if(!f) return;
             const r = new FileReader();
@@ -365,64 +477,39 @@
         };
         
         const importInput = document.createElement('input'); 
-        importInput.type='file'; 
-        importInput.style.display='none';
-        
+        importInput.type='file'; importInput.style.display='none';
         importInput.onchange = (e) => {
             const file = e.target.files[0];
             if(!file) return;
-            
             const reader = new FileReader();
             reader.onload = (evt) => {
                 const text = evt.target.result;
                 const lines = text.split(/\r\n|\n/);
                 state.pendingImports = [];
-                
                 lines.forEach(line => {
                     if(!line.trim()) return;
                     const parts = line.split(/,|，|\t/);
                     let amt = null, type = 'expense', cat = 'other', note = '', date = new Date().toISOString();
-                    
                     let foundDate = null;
                     parts.forEach(p => { const d = parseChineseDate(p); if(d) foundDate = d; });
                     if(foundDate) date = foundDate;
-
                     parts.forEach(p => {
                         const clean = p.replace(/["¥\s]/g, '');
                         if(/^-?\d+(\.\d+)?$/.test(clean) && Math.abs(parseFloat(clean)) < 100000 && !parseChineseDate(p)) {
-                            if(amt === null) {
-                                amt = Math.abs(parseFloat(clean));
-                                if(parseFloat(clean) < 0) type = 'expense';
-                            }
+                            if(amt === null) { amt = Math.abs(parseFloat(clean)); if(parseFloat(clean) < 0) type = 'expense'; }
                         }
                     });
-                    
                     const txt = line.toLowerCase();
                     let matched = false;
                     CATEGORIES.expense.forEach(c => { if(c.keywords.some(k=>txt.includes(k))) { cat = c.id; type='expense'; matched=true; } });
                     if(!matched) CATEGORIES.income.forEach(c => { if(c.keywords.some(k=>txt.includes(k))) { cat = c.id; type='income'; } });
-
                     if(amt !== null) {
-                        state.pendingImports.push({ 
-                            id: Date.now()+Math.random(), 
-                            type, 
-                            amount: amt.toFixed(2), 
-                            category: cat, 
-                            note: txt.slice(0,15), 
-                            date 
-                        });
+                        state.pendingImports.push({ id: Date.now()+Math.random(), type, amount: amt.toFixed(2), category: cat, note: txt.slice(0,15), date });
                     }
                 });
-                
-                if(state.pendingImports.length > 0) {
-                    state.importModalOpen = true;
-                    render();
-                } else {
-                    alert('没读出数据...文件格式可能不对');
-                }
+                if(state.pendingImports.length > 0) { state.importModalOpen = true; render(); } else { alert('没读出数据...文件格式可能不对'); }
             };
-            reader.readAsText(file);
-            e.target.value = null;
+            reader.readAsText(file); e.target.value = null;
         };
 
         document.body.appendChild(restoreInput);
